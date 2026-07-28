@@ -9,13 +9,13 @@ export default async function EmployeeDashboardLayout({
   const user = await requireEmployee();
 
   return (
-    <div className="flex min-h-screen bg-[#f3f3f3]">
+    <div className="flex min-h-screen w-full overflow-x-hidden bg-[#f3f3f3]">
       <Sidebar
         role="employee"
         userName={user.name}
       />
 
-      <main className="flex-1 p-8">{children}</main>
+      <main className="min-w-0 flex-1 p-8">{children}</main>
     </div>
   );
 }

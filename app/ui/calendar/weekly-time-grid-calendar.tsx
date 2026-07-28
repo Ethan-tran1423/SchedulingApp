@@ -21,15 +21,24 @@ import type {
 } from '@/app/lib/utils/calendar/calendar-types';
 import CalendarEventCard from '@/app/ui/calendar/calendar-event-card';
 
+type CalendarBusinessHours = {
+  dateKey: string;
+  startTime: string;
+  endTime: string;
+};
+
 type WeeklyTimeGridCalendarProps = {
   events: CalendarEvent[];
   selectedDateKey: string;
   basePath: string;
+  businessHours?: CalendarBusinessHours[];
   startHour?: number;
   endHour?: number;
 };
 
-const HOUR_HEIGHT = 72;
+const HOUR_HEIGHT = 56;
+const TIME_COLUMN_WIDTH = 64;
+const GRID_TOP_OFFSET = 16;
 
 const FILTERS: {
   label: string;
@@ -43,6 +52,7 @@ export default function WeeklyTimeGridCalendar({
   events,
   selectedDateKey,
   basePath,
+  businessHours = [],
   startHour = 7,
   endHour = 21,
 }: WeeklyTimeGridCalendarProps) {
@@ -66,7 +76,9 @@ export default function WeeklyTimeGridCalendar({
   const nextWeekDateKey = formatDateKey(getNextWeek(selectedDate));
 
   const hourSlots = getHourSlots(startHour, endHour);
-  const calendarHeight = (endHour - startHour) * HOUR_HEIGHT;
+  const calendarHeight =
+    (endHour - startHour) * HOUR_HEIGHT + GRID_TOP_OFFSET;
+  const calendarGridColumns = `${TIME_COLUMN_WIDTH}px repeat(7, minmax(0, 1fr))`;
 
   const visibleEvents = events.filter((event) => {
     return visibleTypes.includes(event.type);
@@ -95,8 +107,21 @@ export default function WeeklyTimeGridCalendar({
     });
   }
 
+  function getTopForTime(time: string) {
+    const minutesFromStart =
+      timeToMinutes(time) - startHour * 60;
+
+    return (minutesFromStart / 60) * HOUR_HEIGHT + GRID_TOP_OFFSET;
+  }
+
+  function getBusinessHoursForDay(dateKey: string) {
+    return businessHours.find((hours) => {
+      return hours.dateKey === dateKey;
+    });
+  }
+
   return (
-    <div className="grid gap-6 xl:grid-cols-[280px_1fr]">
+    <div className="grid min-w-0 gap-6 xl:grid-cols-[280px_minmax(0,1fr)]">
       <aside className="rounded-xl border border-gray-300 bg-white p-5 shadow-sm">
         <h2 className="text-lg font-bold text-black">
           Calendar Tools
@@ -180,7 +205,7 @@ export default function WeeklyTimeGridCalendar({
         </div>
       </aside>
 
-      <section className="rounded-xl border border-gray-300 bg-white p-5 shadow-sm">
+      <section className="min-w-0 rounded-xl border border-gray-300 bg-white p-5 shadow-sm">
         <div className="mb-6 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
           <div>
             <h1 className="text-2xl font-bold text-black">
@@ -216,15 +241,15 @@ export default function WeeklyTimeGridCalendar({
           </div>
         </div>
 
-        <div className="overflow-x-auto">
-          <div className="min-w-[1100px]">
+        <div className="min-w-0 overflow-x-auto">
+          <div className="min-w-full">
             <div
               className="grid border-b border-gray-200"
               style={{
-                gridTemplateColumns: '72px repeat(7, minmax(130px, 1fr))',
+                gridTemplateColumns: calendarGridColumns,
               }}
             >
-              <div />
+              <div className="sticky left-0 z-30 border-r border-gray-200 bg-white" />
 
               {weekDays.map((day) => (
                 <div
@@ -250,19 +275,19 @@ export default function WeeklyTimeGridCalendar({
             <div
               className="grid"
               style={{
-                gridTemplateColumns: '72px repeat(7, minmax(130px, 1fr))',
+                gridTemplateColumns: calendarGridColumns,
               }}
             >
               <div
-                className="relative border-r border-gray-200"
+                className="sticky left-0 z-20 border-r border-gray-200 bg-white"
                 style={{ height: calendarHeight }}
               >
                 {hourSlots.map((hour) => (
                   <div
                     key={hour}
-                    className="absolute left-0 right-2 -translate-y-2 text-right text-xs font-medium text-gray-500"
+                    className="absolute left-0 right-2 -translate-y-1/2 bg-white pr-1 text-right text-xs font-medium text-gray-500"
                     style={{
-                      top: (hour - startHour) * HOUR_HEIGHT,
+                      top: (hour - startHour) * HOUR_HEIGHT + GRID_TOP_OFFSET,
                     }}
                   >
                     {formatHourLabel(hour)}
@@ -272,6 +297,7 @@ export default function WeeklyTimeGridCalendar({
 
               {weekDays.map((day) => {
                 const dayEvents = getEventsForDay(day.dateKey);
+                const dayBusinessHours = getBusinessHoursForDay(day.dateKey);
 
                 return (
                   <div
@@ -284,10 +310,30 @@ export default function WeeklyTimeGridCalendar({
                         key={hour}
                         className="absolute left-0 right-0 border-t border-gray-200"
                         style={{
-                          top: (hour - startHour) * HOUR_HEIGHT,
+                          top:
+                            (hour - startHour) * HOUR_HEIGHT +
+                            GRID_TOP_OFFSET,
                         }}
                       />
                     ))}
+
+                    {dayBusinessHours && (
+                      <>
+                        <div
+                          className="absolute left-0 right-0 z-10 border-t-2 border-black"
+                          style={{
+                            top: getTopForTime(dayBusinessHours.startTime),
+                          }}
+                        />
+
+                        <div
+                          className="absolute left-0 right-0 z-10 border-t-2 border-black"
+                          style={{
+                            top: getTopForTime(dayBusinessHours.endTime),
+                          }}
+                        />
+                      </>
+                    )}
 
                     {dayEvents.map((event) => {
                       const position = getTimeGridPosition({
@@ -303,7 +349,10 @@ export default function WeeklyTimeGridCalendar({
                           event={event}
                           onClick={setSelectedEvent}
                           style={{
-                            top: Math.max(position.top, 0),
+                            top: Math.max(
+                              position.top + GRID_TOP_OFFSET,
+                              0,
+                            ),
                             height: Math.max(position.height, 42),
                           }}
                         />
