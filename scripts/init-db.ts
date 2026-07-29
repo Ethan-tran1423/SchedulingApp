@@ -252,6 +252,12 @@ async function main() {
       organization_role_id INTEGER
         REFERENCES organization_roles(id)
         ON DELETE SET NULL,
+      
+      created_by_user_id INTEGER
+      REFERENCES users(id)
+      ON DELETE RESTRICT,
+
+      notes TEXT,
 
       shift_date DATE NOT NULL,
 
