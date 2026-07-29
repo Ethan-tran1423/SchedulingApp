@@ -4,7 +4,6 @@ import Link from 'next/link';
 import {
   type FormEvent,
   useActionState,
-  useEffect,
   useMemo,
   useState,
   useTransition,
@@ -197,19 +196,7 @@ export default function OrganizationSettingsForm({
   const [copyFromDay, setCopyFromDay] = useState(1);
   const [copyToDay, setCopyToDay] = useState('all');
 
-  /*
-   * When revalidatePath loads fresh database values after a save,
-   * synchronize the local client state with those new values.
-   */
-  useEffect(() => {
-    setWorkingHoursByDay(
-      buildWorkingHoursByDay(initialWorkingHours),
-    );
-
-    setRequirementsByDay(
-      buildRequirementsByDay(initialRoleRequirements),
-    );
-  }, [initialWorkingHours, initialRoleRequirements]);
+  
 
   const serializedSettings = useMemo(() => {
     const workingHours = DAYS.map((day) => {
