@@ -27,6 +27,7 @@ async function main() {
 
       name TEXT NOT NULL,
       email TEXT NOT NULL UNIQUE,
+      phone_number TEXT,
       password_hash TEXT NOT NULL,
 
       role TEXT NOT NULL
