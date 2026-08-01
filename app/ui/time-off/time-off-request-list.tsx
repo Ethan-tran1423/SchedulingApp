@@ -1,3 +1,6 @@
+'use client';
+
+import { useState } from 'react';
 import {
   type TimeOffRequestRow,
   type TimeOffRequestStatus,
@@ -20,7 +23,10 @@ const REQUEST_TYPE_LABELS: Record<
   other: 'Other',
 };
 
-const STATUS_LABELS: Record<TimeOffRequestStatus, string> = {
+const STATUS_LABELS: Record<
+  TimeOffRequestStatus,
+  string
+> = {
   pending: 'Pending',
   approved: 'Approved',
   denied: 'Denied',
@@ -41,77 +47,103 @@ const STATUS_CLASSES: Record<
     'border-gray-200 bg-gray-100 text-gray-600',
 };
 
-function formatDate(value: Date | string) {
-  const date = value instanceof Date
-    ? value
-    : new Date(`${value}T00:00:00`);
+function getDateKey(value: Date | string) {
+  if (value instanceof Date) {
+    return value.toISOString().slice(0, 10);
+  }
 
-  return new Intl.DateTimeFormat('en-US', {
-    month: 'short',
-    day: 'numeric',
-    year: 'numeric',
-    timeZone: 'UTC',
-  }).format(date);
+  return value;
 }
 
-function formatCreatedAt(date: Date) {
+function formatDate(value: Date | string) {
+  const dateKey = getDateKey(value);
+
+  const [year, month, day] = dateKey
+    .split('-')
+    .map(Number);
+
   return new Intl.DateTimeFormat('en-US', {
     month: 'short',
     day: 'numeric',
     year: 'numeric',
-  }).format(new Date(date));
+  }).format(new Date(year, month - 1, day));
 }
 
 function formatDateRange(
   startDate: Date | string,
   endDate: Date | string,
 ) {
-  const startKey =
-    startDate instanceof Date
-      ? startDate.toISOString().slice(0, 10)
-      : startDate;
-
-  const endKey =
-    endDate instanceof Date
-      ? endDate.toISOString().slice(0, 10)
-      : endDate;
-
-  if (startKey === endKey) {
+  if (getDateKey(startDate) === getDateKey(endDate)) {
     return formatDate(startDate);
   }
 
   return `${formatDate(startDate)} – ${formatDate(endDate)}`;
 }
 
+function formatCreatedAt(value: Date | string) {
+  return new Intl.DateTimeFormat('en-US', {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+  }).format(new Date(value));
+}
+
 export default function TimeOffRequestList({
   requests,
 }: TimeOffRequestListProps) {
+  const [hideCancelled, setHideCancelled] = useState(false);
+
+  const visibleRequests = hideCancelled
+    ? requests.filter(
+        (request) => request.status !== 'cancelled',
+      )
+    : requests;
+
   return (
     <section className="rounded-xl border border-gray-300 bg-white shadow-sm">
-      <div className="border-b border-gray-200 px-6 py-5">
-        <h2 className="text-xl font-bold text-black">
-          Request History
-        </h2>
+      <div className="flex flex-col gap-4 border-b border-gray-200 px-6 py-5 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <h2 className="text-xl font-bold text-black">
+            Request History
+          </h2>
 
-        <p className="mt-1 text-sm text-gray-600">
-          Review the status of your submitted requests.
-        </p>
+          <p className="mt-1 text-sm text-gray-600">
+            Review the status of your submitted requests.
+          </p>
+        </div>
+
+        <label className="flex cursor-pointer items-center gap-2 text-sm font-medium text-gray-700">
+          <input
+            type="checkbox"
+            checked={hideCancelled}
+            onChange={(event) =>
+              setHideCancelled(event.target.checked)
+            }
+            className="h-4 w-4 accent-purple-500"
+          />
+
+          Hide cancelled requests
+        </label>
       </div>
 
-      {requests.length === 0 ? (
+      {visibleRequests.length === 0 ? (
         <div className="px-6 py-12 text-center">
           <p className="font-medium text-gray-700">
-            You have not submitted any time-off requests.
+            {hideCancelled && requests.length > 0
+              ? 'No active requests to display.'
+              : 'You have not submitted any time-off requests.'}
           </p>
 
           <p className="mt-1 text-sm text-gray-500">
-            New requests will appear here after submission.
+            {hideCancelled && requests.length > 0
+              ? 'Turn off the filter to view cancelled requests.'
+              : 'New requests will appear here after submission.'}
           </p>
         </div>
       ) : (
-        <div className="overflow-x-auto">
+        <div className="max-h-[500px] overflow-auto">
           <table className="w-full min-w-[800px] text-left">
-            <thead className="bg-gray-50 text-xs uppercase tracking-wide text-gray-500">
+            <thead className="sticky top-0 z-10 bg-gray-50 text-xs uppercase tracking-wide text-gray-500">
               <tr>
                 <th className="px-6 py-3 font-semibold">
                   Dates
@@ -140,7 +172,7 @@ export default function TimeOffRequestList({
             </thead>
 
             <tbody className="divide-y divide-gray-200">
-              {requests.map((request) => (
+              {visibleRequests.map((request) => (
                 <tr
                   key={request.id}
                   className="align-top text-sm text-gray-700"
@@ -153,7 +185,11 @@ export default function TimeOffRequestList({
                   </td>
 
                   <td className="whitespace-nowrap px-6 py-4">
-                    {REQUEST_TYPE_LABELS[request.request_type]}
+                    {
+                      REQUEST_TYPE_LABELS[
+                        request.request_type
+                      ]
+                    }
                   </td>
 
                   <td className="max-w-xs px-6 py-4">
@@ -207,7 +243,9 @@ export default function TimeOffRequestList({
                         </button>
                       </form>
                     ) : (
-                      <span className="text-gray-400">—</span>
+                      <span className="text-gray-400">
+                        —
+                      </span>
                     )}
                   </td>
                 </tr>
