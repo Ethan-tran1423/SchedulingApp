@@ -1,8 +1,17 @@
-// app/dashboard/employee/set-preffered-availibility/page.tsx
-
 import WeeklyAvailabilityForm from '@/app/ui/availability/weekly-availability-form';
 import { requireRoleFromCookie } from '@/app/lib/utils/cookie';
 import { findWeeklyAvailability } from '@/app/lib/repos/employee-availability';
+import { findEmployeeSchedulingPreference } from '@/app/lib/repos/employee-scheduling-preferences';
+
+function formatPreferredWeeklyHours(
+  value: string | null | undefined,
+): string {
+  if (!value) {
+    return '';
+  }
+
+  return Number(value).toFixed(1);
+}
 
 function formatTimeForInput(time: string) {
   return time.slice(0, 5);
@@ -11,7 +20,10 @@ function formatTimeForInput(time: string) {
 export default async function SetPreferredAvailabilityPage() {
   const employee = await requireRoleFromCookie('employee');
 
-  const savedAvailability = await findWeeklyAvailability(employee.id);
+  const [preference, savedAvailability] = await Promise.all([
+    findEmployeeSchedulingPreference(employee.id),
+    findWeeklyAvailability(employee.id),
+  ]);
 
   const initialAvailability = savedAvailability.map((window) => ({
     id: window.id,
@@ -32,7 +44,12 @@ export default async function SetPreferredAvailabilityPage() {
         </p>
       </div>
 
-      <WeeklyAvailabilityForm initialAvailability={initialAvailability} />
+      <WeeklyAvailabilityForm
+        initialAvailability={initialAvailability}
+        initialPreferredWeeklyHours={formatPreferredWeeklyHours(
+          preference?.preferred_weekly_hours,
+        )}
+      />
     </section>
   );
 }
