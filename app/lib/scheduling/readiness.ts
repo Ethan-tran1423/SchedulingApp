@@ -2,7 +2,7 @@ import type {
   DatedStaffingRequirement,
   SchedulingEmployee,
   SchedulingInput,
-} from '@/app/lib/scheduling/types';
+} from './types';
 
 export type SchedulingReadinessIssueSeverity =
   | 'error'

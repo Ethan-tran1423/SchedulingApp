@@ -54,17 +54,15 @@ export async function findEmployeeShiftsInDateRange({
       shift.created_at,
       shift.updated_at
     FROM shifts AS shift
-    LEFT JOIN schedules AS schedule
+    INNER JOIN schedules AS schedule
       ON schedule.id = shift.schedule_id
       AND schedule.organization_id =
         shift.organization_id
     WHERE shift.employee_id = ${employeeId}
       AND shift.shift_date >= ${startDate}
       AND shift.shift_date <= ${endDate}
-      AND (
-        shift.schedule_id IS NULL
-        OR schedule.status = 'published'
-      )
+      AND schedule.status = 'published'
+      AND shift.status <> 'cancelled'
     ORDER BY
       shift.shift_date ASC,
       shift.start_time ASC;
@@ -72,7 +70,6 @@ export async function findEmployeeShiftsInDateRange({
 
   return result;
 }
-
 /**
  * Returns all organization shifts in a date range.
  *
