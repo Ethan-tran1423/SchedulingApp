@@ -1,4 +1,5 @@
 'use client';
+import EmployeeWeekScheduleGrid from '@/app/ui/calendar/employee-week-schedule-grid';
 
 import {
   useActionState,
@@ -60,6 +61,11 @@ export type SchedulePreview = {
   totalRequiredAssignments: number;
   unfilledAssignments: number;
   coveragePercentage: number;
+
+  employees: {
+  id: number;
+  name: string;
+  }[];
 
   warnings: ScheduleActionIssue[];
 

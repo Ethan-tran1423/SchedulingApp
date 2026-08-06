@@ -322,7 +322,13 @@ function createSchedulePreview({
       schedule.published_at
         ? schedule.published_at.toISOString()
         : null,
-
+    employees: employees.map(
+      (employee) => ({
+        id: employee.id,
+        name: employee.name,
+      })
+    ),
+    
     filledAssignments,
 
     totalRequiredAssignments,
