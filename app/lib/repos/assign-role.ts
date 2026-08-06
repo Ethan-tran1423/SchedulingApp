@@ -1,6 +1,5 @@
 import { sql } from '@/app/lib/db';
 
-// New SQL query to assign employee to role with validation checks
 export type AssignEmployeeToRoleResult =
   | {
       success: true;
@@ -10,6 +9,11 @@ export type AssignEmployeeToRoleResult =
       success: false;
       status: 'already-assigned' | 'invalid-selection';
     };
+
+export type EmployeeRoleAssignmentRow = {
+  user_id: number;
+  organization_role_id: number;
+};
 
 /**
  * Assigns an employee to an organization role.
@@ -91,4 +95,89 @@ export async function assignEmployeeToRole(
     success: true,
     status: 'assigned',
   };
+}
+
+export async function findEmployeeRoleAssignments(
+  organizationId: number,
+): Promise<EmployeeRoleAssignmentRow[]> {
+  const result = await sql<EmployeeRoleAssignmentRow[]>`
+    SELECT
+      user_organization_roles.user_id,
+      user_organization_roles.organization_role_id
+    FROM user_organization_roles
+    JOIN users
+      ON users.id = user_organization_roles.user_id
+    JOIN organization_roles
+      ON organization_roles.id =
+        user_organization_roles.organization_role_id
+    WHERE users.organization_id = ${organizationId}
+      AND users.role = 'employee'
+      AND organization_roles.organization_id = ${organizationId}
+    ORDER BY
+      users.name ASC,
+      organization_roles.name ASC;
+  `;
+
+  return result;
+}
+
+export async function replaceEmployeeRoleAssignments({
+  organizationId,
+  userId,
+  roleIds,
+}: {
+  organizationId: number;
+  userId: number;
+  roleIds: number[];
+}): Promise<void> {
+  await sql.begin(async (transaction) => {
+    const employeeRows = await transaction<{ id: number }[]>`
+      SELECT id
+      FROM users
+      WHERE id = ${userId}
+        AND organization_id = ${organizationId}
+        AND role = 'employee'
+      LIMIT 1;
+    `;
+
+    if (!employeeRows[0]) {
+      throw new Error('Employee not found in this organization.');
+    }
+
+    await transaction`
+      DELETE FROM user_organization_roles
+      USING organization_roles
+      WHERE user_organization_roles.organization_role_id =
+        organization_roles.id
+        AND user_organization_roles.user_id = ${userId}
+        AND organization_roles.organization_id = ${organizationId};
+    `;
+
+    for (const roleId of roleIds) {
+      const insertedRows = await transaction<{ user_id: number }[]>`
+        INSERT INTO user_organization_roles (
+          user_id,
+          organization_role_id
+        )
+        SELECT
+          ${userId},
+          organization_roles.id
+        FROM organization_roles
+        WHERE organization_roles.id = ${roleId}
+          AND organization_roles.organization_id = ${organizationId}
+        ON CONFLICT (
+          user_id,
+          organization_role_id
+        )
+        DO NOTHING
+        RETURNING user_id;
+      `;
+
+      if (!insertedRows[0]) {
+        throw new Error(
+          'One of the selected roles was not found in this organization.',
+        );
+      }
+    }
+  });
 }

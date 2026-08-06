@@ -4,7 +4,6 @@ import EmployeeWeekScheduleGrid from '@/app/ui/calendar/employee-week-schedule-g
 import {
   useActionState,
   useEffect,
-  useMemo,
   useRef,
 } from 'react';
 
@@ -63,8 +62,8 @@ export type SchedulePreview = {
   coveragePercentage: number;
 
   employees: {
-  id: number;
-  name: string;
+    id: number;
+    name: string;
   }[];
 
   warnings: ScheduleActionIssue[];
@@ -283,34 +282,6 @@ export default function AutomaticSchedulingClient({
     router,
   ]);
 
-  const shiftsByDate = useMemo(() => {
-    const groupedShifts =
-      new Map<
-        string,
-        SchedulePreviewShift[]
-      >();
-
-    for (
-      const shift of
-      schedulePreview?.shifts ?? []
-    ) {
-      const currentShifts =
-        groupedShifts.get(
-          shift.shiftDate,
-        ) ?? [];
-
-      currentShifts.push(shift);
-
-      groupedShifts.set(
-        shift.shiftDate,
-        currentShifts,
-      );
-    }
-
-    return Array.from(
-      groupedShifts.entries(),
-    );
-  }, [schedulePreview]);
 
   return (
     <div className="grid gap-8 xl:grid-cols-[360px_minmax(0,1fr)]">
@@ -595,102 +566,12 @@ export default function AutomaticSchedulingClient({
               </div>
             )}
 
-            <div className="rounded-xl border border-gray-300 bg-white p-6 shadow-sm">
-              <div className="mb-6">
-                <h2 className="text-xl font-semibold text-black">
-                  Weekly Shift Preview
-                </h2>
-
-                <p className="mt-1 text-sm text-gray-500">
-                  {
-                    schedulePreview.shifts
-                      .length
-                  }{' '}
-                  generated shift
-                  {schedulePreview.shifts
-                    .length === 1
-                    ? ''
-                    : 's'}
-                  .
-                </p>
-              </div>
-
-              {shiftsByDate.length === 0 ? (
-                <div className="rounded-lg border border-dashed border-gray-300 bg-gray-50 p-8 text-center">
-                  <p className="text-sm text-gray-500">
-                    No shifts were generated.
-                  </p>
-                </div>
-              ) : (
-                <div className="space-y-7">
-                  {shiftsByDate.map(
-                    ([date, shifts]) => (
-                      <section key={date}>
-                        <h3 className="mb-3 border-b border-gray-200 pb-2 font-semibold text-black">
-                          {formatDateLabel(
-                            date,
-                          )}
-                        </h3>
-
-                        <div className="grid gap-3 md:grid-cols-2">
-                          {shifts.map(
-                            (shift) => (
-                              <article
-                                key={
-                                  shift.id
-                                }
-                                className="rounded-lg border border-gray-200 bg-gray-50 p-4"
-                              >
-                                <div className="flex items-start justify-between gap-3">
-                                  <div>
-                                    <h4 className="font-semibold text-black">
-                                      {
-                                        shift.employeeName
-                                      }
-                                    </h4>
-
-                                    <p className="mt-1 text-sm font-medium text-purple-600">
-                                      {
-                                        shift.roleName
-                                      }
-                                    </p>
-                                  </div>
-
-                                  <span className="rounded-md bg-white px-2 py-1 text-xs font-medium text-gray-600">
-                                    #
-                                    {
-                                      shift.id
-                                    }
-                                  </span>
-                                </div>
-
-                                <p className="mt-4 text-sm text-gray-700">
-                                  {formatTime(
-                                    shift.startTime,
-                                  )}{' '}
-                                  –{' '}
-                                  {formatTime(
-                                    shift.endTime,
-                                  )}
-                                </p>
-
-                                {shift.notes && (
-                                  <p className="mt-2 text-xs text-gray-500">
-                                    {
-                                      shift.notes
-                                    }
-                                  </p>
-                                )}
-                              </article>
-                            ),
-                          )}
-                        </div>
-                      </section>
-                    ),
-                  )}
-                </div>
-              )}
-            </div>
+            <EmployeeWeekScheduleGrid
+              weekStartDate={schedulePreview.weekStartDate}
+              status={schedulePreview.status}
+              employees={schedulePreview.employees}
+              shifts={schedulePreview.shifts}
+            />
 
             <IssueList
               title="Saved readiness warnings"

@@ -326,9 +326,9 @@ function createSchedulePreview({
       (employee) => ({
         id: employee.id,
         name: employee.name,
-      })
+      }),
     ),
-    
+
     filledAssignments,
 
     totalRequiredAssignments,
