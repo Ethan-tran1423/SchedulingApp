@@ -1,37 +1,28 @@
-// app/dashboard/manager/set-org-roles/create-org-role-form.tsx
-
 'use client';
 
 import { useActionState } from 'react';
 import { createOrganizationRole } from '@/app/lib/roles/org-role-actions';
-
-type Employee = {
-  id: number;
-  name: string;
-  email: string;
-};
 
 const initialState = {
   error: '',
   success: '',
 };
 
-export default function CreateOrgRoleForm({
-  employees,
-}: {
-  employees: Employee[];
-}) {
+export default function CreateOrgRoleForm() {
   const [state, formAction, isPending] = useActionState(
     createOrganizationRole,
-    initialState
+    initialState,
   );
 
   return (
     <div className="rounded-xl border border-gray-300 bg-white p-6 shadow-sm">
-      <h2 className="mb-1 text-xl font-semibold text-black">Add New Role</h2>
+      <h2 className="mb-1 text-xl font-semibold text-black">
+        Add New Role
+      </h2>
 
       <p className="mb-6 text-sm text-gray-500">
-        Define a role employees can be scheduled under.
+        Define a role employees can be scheduled under. Employees
+        can be assigned to roles from the Manage Employees page.
       </p>
 
       <form action={formAction} className="flex flex-col gap-5">
@@ -66,38 +57,11 @@ export default function CreateOrgRoleForm({
           />
         </div>
 
-        {/* Employee dropdown */}
-        <div className="flex flex-col gap-1">
-          <label
-            htmlFor="employeeId"
-            className="text-sm font-medium text-black"
-          >
-            Assign Employee
-          </label>
-
-          <select
-            id="employeeId"
-            name="employeeId"
-            className="h-10 rounded-md border border-gray-300 bg-white px-3 text-black"
-          >
-            <option value="">
-              Select employee
-            </option>
-
-            {employees.map((employee) => (
-              <option
-                key={employee.id}
-                value={employee.id}
-              >
-                {employee.name}
-              </option>
-            ))}
-          </select>
-        </div>
-
         {state?.error && (
           <div className="rounded-md border border-red-300 bg-red-100 px-3 py-2">
-            <p className="text-sm font-medium text-red-700">{state.error}</p>
+            <p className="text-sm font-medium text-red-700">
+              {state.error}
+            </p>
           </div>
         )}
 
