@@ -1,6 +1,3 @@
-// This file works with organization_roles and user_organization_roles tables. It's a server action file.
-// Server action: Receives request from UI and coordinates everything to complete that request
-
 'use server';
 
 import { revalidatePath } from 'next/cache';
@@ -11,36 +8,44 @@ import {
 } from '@/app/lib/repos/org-roles';
 import { requireManager } from '@/app/lib/utils/auth/require-manager';
 import { isValidOrganizationRoleName } from '@/app/lib/utils/validation';
-import { assignEmployeeToRole } from '@/app/lib/repos/assign-role';
+import {
+  assignEmployeeToRole,
+  replaceEmployeeRoleAssignments,
+} from '@/app/lib/repos/assign-role';
 
-type RoleActionState = {
+export type RoleActionState = {
   error?: string;
   success?: string;
 };
 
+function parsePositiveInteger(value: FormDataEntryValue | null) {
+  if (typeof value !== 'string') {
+    return null;
+  }
+
+  const parsedValue = Number(value);
+
+  if (!Number.isInteger(parsedValue) || parsedValue <= 0) {
+    return null;
+  }
+
+  return parsedValue;
+}
+
 export async function createOrganizationRole(
-  previousState: RoleActionState,
+  _previousState: RoleActionState,
   formData: FormData,
 ): Promise<RoleActionState> {
   const manager = await requireManager();
 
   const name = formData.get('name')?.toString().trim();
   const description = formData.get('description')?.toString().trim();
-  const employeeId = Number(formData.get('employeeId'));
 
   if (!isValidOrganizationRoleName(name)) {
     return {
       error: 'Role name is required.',
     };
   }
-
-  // validates employee id
-
-  if (!Number.isInteger(employeeId) || employeeId <= 0) {
-  return {
-    error: 'Please select an employee.',
-  };
-}
 
   const existingRole = await findOrganizationRoleByName(
     manager.organization_id,
@@ -53,20 +58,14 @@ export async function createOrganizationRole(
     };
   }
 
-  const createdRole =await createOrganizationRoleRecord(
+  await createOrganizationRoleRecord(
     manager.organization_id,
     name,
     description,
   );
 
-  // assign the role to the employee if an employee is selected
-  await assignEmployeeToRole(
-  manager.organization_id,
-  employeeId,
-  createdRole.id,
-);
-
   revalidatePath('/dashboard/manager/set-org-roles');
+  revalidatePath('/dashboard/manager/manage-employees');
 
   return {
     success: 'Role added successfully.',
@@ -93,39 +92,22 @@ export async function deleteOrganizationRole(formData: FormData) {
   }
 
   revalidatePath('/dashboard/manager/set-org-roles');
+  revalidatePath('/dashboard/manager/manage-employees');
 }
 
-// function to assign role to employee
-
-export async function assignEmployeeRole(
-  formData: FormData,
-) {
+export async function assignEmployeeRole(formData: FormData) {
   const manager = await requireManager();
 
-  const employeeId = Number(
-    formData.get('employeeId')
-  );
+  const employeeId = Number(formData.get('employeeId'));
+  const roleId = Number(formData.get('roleId'));
 
-  const roleId = Number(
-    formData.get('roleId')
-  );
-
-
-  if (
-    !Number.isInteger(employeeId) ||
-    employeeId <= 0
-  ) {
+  if (!Number.isInteger(employeeId) || employeeId <= 0) {
     throw new Error('A valid employee id is required.');
   }
 
-
-  if (
-    !Number.isInteger(roleId) ||
-    roleId <= 0
-  ) {
+  if (!Number.isInteger(roleId) || roleId <= 0) {
     throw new Error('A valid role id is required.');
   }
-
 
   await assignEmployeeToRole(
     manager.organization_id,
@@ -133,8 +115,51 @@ export async function assignEmployeeRole(
     roleId,
   );
 
+  revalidatePath('/dashboard/manager/set-org-roles');
+  revalidatePath('/dashboard/manager/manage-employees');
+}
 
-  revalidatePath(
-    '/dashboard/manager/set-org-roles'
+export async function saveEmployeeRoleAssignments(
+  _previousState: RoleActionState,
+  formData: FormData,
+): Promise<RoleActionState> {
+  const manager = await requireManager();
+
+  const userId = parsePositiveInteger(formData.get('userId'));
+
+  if (!userId) {
+    return {
+      error: 'A valid employee is required.',
+    };
+  }
+
+  const roleIds = Array.from(
+    new Set(
+      formData
+        .getAll('roleIds')
+        .map((value) => parsePositiveInteger(value))
+        .filter((value): value is number => value !== null),
+    ),
   );
+
+  try {
+    await replaceEmployeeRoleAssignments({
+      organizationId: manager.organization_id,
+      userId,
+      roleIds,
+    });
+  } catch (error) {
+    console.error('Failed to save employee roles:', error);
+
+    return {
+      error: 'Unable to save employee roles.',
+    };
+  }
+
+  revalidatePath('/dashboard/manager/manage-employees');
+  revalidatePath('/dashboard/manager/set-org-roles');
+
+  return {
+    success: 'Employee roles saved.',
+  };
 }

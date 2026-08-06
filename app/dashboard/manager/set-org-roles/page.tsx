@@ -2,21 +2,19 @@ import { findOrganizationRoles } from '@/app/lib/repos/org-roles';
 import { requireManager } from '@/app/lib/utils/auth/require-manager';
 import { deleteOrganizationRole } from '@/app/lib/roles/org-role-actions';
 import CreateOrgRoleForm from './create-org-role-form';
-import { getEmployees } from '@/app/lib/repos/view-employees';
-
 
 export default async function SetOrgRolesPage() {
   const manager = await requireManager();
-  
-  const employees = await getEmployees(manager.organization_id);
 
   const roles = await findOrganizationRoles(manager.organization_id);
-
 
   return (
     <section>
       <div className="mb-8">
-        <h1 className="text-3xl font-bold text-black">Set Org Roles</h1>
+        <h1 className="text-3xl font-bold text-black">
+          Set Org Roles
+        </h1>
+
         <p className="mt-2 text-gray-600">
           Create the roles employees can be assigned to in your organization.
         </p>
@@ -46,7 +44,9 @@ export default async function SetOrgRolesPage() {
                   className="flex items-start justify-between gap-4 rounded-lg border border-gray-200 bg-gray-50 p-4"
                 >
                   <div>
-                    <h3 className="font-semibold text-black">{role.name}</h3>
+                    <h3 className="font-semibold text-black">
+                      {role.name}
+                    </h3>
 
                     <p className="mt-1 text-sm text-gray-600">
                       {role.description || 'No description added.'}
@@ -54,10 +54,14 @@ export default async function SetOrgRolesPage() {
                   </div>
 
                   <div className="flex flex-col items-end gap-2">
-                    <p className="text-sm font-medium text-black">Assigned Employees:</p>
+                    <p className="text-sm font-medium text-black">
+                      Assigned Employees:
+                    </p>
 
                     {role.employees.length === 0 ? (
-                      <p className="text-sm text-grey-500">No employees assigned.</p>
+                      <p className="text-sm text-gray-500">
+                        No employees assigned.
+                      </p>
                     ) : (
                       <ul className="text-sm text-gray-500">
                         {role.employees.map((employee) => (
@@ -66,12 +70,13 @@ export default async function SetOrgRolesPage() {
                       </ul>
                     )}
                   </div>
-                  
-
-                  
 
                   <form action={deleteOrganizationRole}>
-                    <input type="hidden" name="roleId" value={role.id} />
+                    <input
+                      type="hidden"
+                      name="roleId"
+                      value={role.id}
+                    />
 
                     <button
                       type="submit"
@@ -86,11 +91,7 @@ export default async function SetOrgRolesPage() {
           )}
         </div>
 
-        
-
-        <CreateOrgRoleForm employees={employees} />
-          
-
+        <CreateOrgRoleForm />
       </div>
     </section>
   );
